@@ -1,0 +1,66 @@
+# ── Data (user must download separately) ──
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/splits/*.npy
+
+# ── Artifacts & checkpoints ──
+artifacts/checkpoints/*.pt
+artifacts/checkpoints/*.pth
+artifacts/predictions/*
+!artifacts/predictions/.gitkeep
+artifacts/**/*.pkl
+
+# ── MLflow ──
+mlruns/
+
+# ── Reports (generated outputs) ──
+reports/*.json
+reports/*.csv
+reports/*.md
+!reports/.gitkeep
+reports/figures/*.png
+reports/figures/*.pdf
+!reports/figures/.gitkeep
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual environments ──
+.venv/
+venv/
+rfsentinel/
+env/
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Testing & linting ──
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+tmp/
+
+# ── Environment ──
+.env
+
+# ── Jupyter ──
+.ipynb_checkpoints/
+
+# ── OS ──
+.DS_Store
+Thumbs.db

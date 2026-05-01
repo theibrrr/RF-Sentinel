@@ -1,0 +1,40 @@
+# RF-Sentinel requirements
+# Recommended:
+#   1) Install PyTorch separately for your hardware first.
+#      For NVIDIA GPU with conda:
+#        conda install pytorch pytorch-cuda=12.1 -c pytorch -c nvidia -y
+#      Or with pip CUDA wheels:
+#        pip install torch --index-url https://download.pytorch.org/whl/cu121
+#   2) Then install RF-Sentinel:
+#        pip install -e ".[all]"
+#
+# PyTorch is intentionally not listed below because the correct CPU/CUDA build
+# depends on your machine. Installing a generic torch wheel can accidentally
+# give you a CPU-only environment.
+
+# Core ML
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+h5py>=3.8
+scikit-learn>=1.2
+
+# Experiment tracking
+mlflow>=2.8
+
+# Visualization
+matplotlib>=3.7
+plotly>=5.14
+streamlit>=1.28
+
+# Configuration & CLI
+pyyaml>=6.0
+typer[all]>=0.9
+rich>=13.0
+
+# Optional baseline
+xgboost>=1.7
+
+# Development
+pytest>=7.4
+ruff>=0.1

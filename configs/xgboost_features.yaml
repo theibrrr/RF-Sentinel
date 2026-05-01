@@ -1,0 +1,61 @@
+# RF-Sentinel XGBoost Feature-Based Baseline Configuration
+
+project:
+  name: RF-Sentinel
+  seed: 42
+  output_dir: artifacts
+  report_dir: reports
+
+data:
+  dataset_path: data/raw/GOLD_XYZ_OSC.0001_1024.hdf5
+  x_key: X
+  y_key: Y
+  snr_key: Z
+  sample_length: 1024
+  iq_channels: 2
+  max_samples: 5000
+  subset_fraction: null
+  normalize: none
+  split_dir: data/splits
+  reuse_splits: true
+
+splits:
+  train_size: 0.70
+  val_size: 0.15
+  test_size: 0.15
+  stratify_by: label_snr
+  random_seed: 42
+
+model:
+  type: xgboost
+  n_estimators: 100
+  max_depth: 8
+  learning_rate: 0.1
+  subsample: 0.8
+  colsample_bytree: 0.8
+  device: auto          # auto, cuda, or cpu
+  gpu_fallback: true    # retry on CPU if XGBoost GPU training is unavailable
+  tree_method: hist
+  num_classes: auto
+
+features:
+  enabled: true
+  feature_set:
+    - amplitude_stats
+    - phase_stats
+    - instantaneous_frequency
+    - energy
+    - spectral_entropy
+    - iq_stats
+    - higher_order_stats
+
+evaluation:
+  report_subdir: xgboost
+  save_confusion_matrix: true
+  save_snr_curve: true
+
+mlflow:
+  enabled: true
+  tracking_uri: mlruns
+  experiment_name: rf-sentinel-xgboost
+  run_name: xgboost-features

@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rf-sentinel"
+version = "1.0.0"
+description = "Robust RF Modulation Recognition from Raw I/Q Data"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "RF-Sentinel Contributors"},
+]
+keywords = ["rf", "modulation", "classification", "deep-learning", "iq-data", "signal-processing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "h5py>=3.8",
+    "scikit-learn>=1.2",
+    "mlflow>=2.8",
+    "matplotlib>=3.7",
+    "plotly>=5.14",
+    "streamlit>=1.28",
+    "pyyaml>=6.0",
+    "typer[all]>=0.9",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+torch = ["torch>=2.0"]
+xgboost = ["xgboost>=1.7"]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.1",
+]
+all = [
+    "xgboost>=1.7",
+    "pytest>=7.4",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+rf-sentinel = "rf_sentinel.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = [
+    "E501",
+    # Scientific Python code commonly uses X/y-style array names. Keep Ruff
+    # strict elsewhere while allowing conventional ML notation.
+    "N803",
+    "N806",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rf_sentinel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"

@@ -1,0 +1,36 @@
+# RF-Sentinel Inference Default Configuration
+
+project:
+  name: RF-Sentinel
+  seed: 42
+  output_dir: artifacts
+  report_dir: reports
+
+data:
+  dataset_path: data/raw/GOLD_XYZ_OSC.0001_1024.hdf5
+  x_key: X
+  y_key: Y
+  snr_key: Z
+  sample_length: 1024
+  iq_channels: 2
+  max_samples: null
+  subset_fraction: null
+  normalize: rms
+  split_dir: data/splits
+  reuse_splits: true
+
+model:
+  # Inference rebuilds the actual architecture from checkpoint metadata.
+  # This section is retained as a fallback/default shape reference.
+  type: cnn1d
+  input_channels: 2
+  num_classes: auto
+  dropout: 0.25
+  base_channels: 64
+
+evaluation:
+  confidence_threshold: 0.70
+  top_k: 3
+
+training:
+  device: auto
