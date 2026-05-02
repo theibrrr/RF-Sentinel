@@ -24,7 +24,7 @@ RF-Sentinel is a research-oriented RF signal analysis framework for automatic mo
 - **Does not include the dataset** — you must download RadioML 2018.01A separately
 - **Does not validate on real SDR hardware** — all experiments use synthetic/simulated data
 - **Does not implement real-time streaming** in v1 — this is a batch research pipeline
-- **Does not implement ONNX export, FastAPI, or Docker Compose** — these are planned for v2
+- **Does not implement ONNX export, FastAPI, or Docker Compose** — these remain on the v2+ roadmap
 
 ---
 
@@ -257,107 +257,105 @@ accuracy metrics, and report artifacts to MLflow.
 
 ---
 
-## CNN1D Baseline Results
+## Waveform Model Results
 
-The current CNN1D baseline was trained for **30 epochs** on the full RadioML
-2018.01A dataset using per-sample RMS normalization and the standard
+CNN1D, ResNet1D, and TCN1D were evaluated on the full RadioML 2018.01A test
+split with the same RMS-normalized raw I/Q input and the same
 70% / 15% / 15% label+SNR split. The test split contains **383,386** examples.
+The CNN1D and ResNet1D runs completed 30 epochs; the TCN1D run used a 30-epoch
+budget and stopped after 21 epochs via early stopping.
 
-| Metric | Value |
-|--------|------:|
-| Test accuracy | 57.48% |
-| Macro F1 | 57.72% |
-| Weighted F1 | 57.72% |
-| Low-SNR accuracy, `SNR <= 0 dB` | 17.32% |
-| Mid-SNR accuracy, `2..10 dB` | 77.97% |
-| High-SNR accuracy, `SNR >= 12 dB` | 91.40% |
-| Accepted ratio at confidence `>= 0.70` | 45.12% |
-| Accuracy on accepted predictions | 96.89% |
-| Accuracy on uncertain predictions | 25.08% |
+| Model | Test accuracy | Macro F1 | Low SNR `<=0 dB` | Mid SNR `2..10 dB` | High SNR `>=12 dB` | Accepted ratio | Accepted accuracy |
+|-------|--------------:|---------:|-----------------:|-------------------:|--------------------:|---------------:|------------------:|
+| CNN1D | 57.48% | 57.72% | 17.32% | 77.97% | 91.40% | 45.12% | 96.89% |
+| ResNet1D | **61.60%** | 62.22% | **19.03%** | 84.84% | **96.81%** | 54.85% | **97.14%** |
+| TCN1D | 61.48% | **64.34%** | 18.60% | **85.98%** | 96.39% | **55.69%** | 96.58% |
 
-The headline result is that the aggregate accuracy is dominated by very noisy
-samples. Once SNR is high enough, the compact CNN1D model becomes a strong
-modulation classifier: accuracy crosses 80% by **6 dB**, approaches 90% around
-**10 dB**, and stays near **91-92%** from **12 dB to 30 dB**.
+ResNet1D gives the best overall accuracy and the strongest high-SNR result.
+TCN1D is nearly tied on overall accuracy, leads on macro F1, and performs best
+in the mid-SNR transition band. Both deeper waveform models are clearly stronger
+than CNN1D once useful signal structure is visible. The low-SNR band remains the
+hardest regime for all models.
 
-![CNN1D accuracy vs SNR](assets/cnn1d_accuracy_vs_snr.png)
+![Model accuracy by SNR band](assets/model_accuracy_band_comparison.png)
 
 ### SNR Robustness
 
-| SNR band | Accuracy | Interpretation |
-|----------|---------:|----------------|
-| `-20..0 dB` | 17.32% | Noise-dominated regime; many modulation families collapse into similar-looking waveforms. |
-| `2..10 dB` | 77.97% | Transition region; performance rises quickly as signal structure becomes visible. |
-| `12..30 dB` | 91.40% | Stable high-SNR regime; CNN1D captures most waveform patterns reliably. |
+The aggregate score hides the most important behavior: model performance is
+mainly determined by SNR. At very low SNR, all models are close to the
+noise-dominated regime. From **2 dB to 10 dB**, ResNet1D and TCN1D pull away
+from CNN1D. Above **12 dB**, ResNet1D and TCN1D stabilize around **96-97%**
+accuracy, while CNN1D plateaus around **91-92%**.
 
-Selected per-SNR points:
+![Accuracy vs SNR by model](assets/model_accuracy_vs_snr_comparison.png)
 
-| SNR (dB) | Accuracy |
-|---------:|---------:|
-| -20 | 3.71% |
-| -10 | 7.86% |
-| 0 | 52.13% |
-| 6 | 80.91% |
-| 10 | 89.77% |
-| 12 | 90.76% |
-| 20 | 91.75% |
-| 30 | 91.68% |
+Selected per-SNR comparison:
+
+| SNR (dB) | CNN1D | ResNet1D | TCN1D |
+|---------:|------:|---------:|------:|
+| -20 | 3.71% | 4.13% | 4.22% |
+| -10 | 7.86% | 10.48% | 11.89% |
+| 0 | 52.13% | 55.54% | 55.19% |
+| 6 | 80.91% | 89.22% | **90.54%** |
+| 10 | 89.77% | **95.75%** | 95.63% |
+| 12 | 90.76% | **96.31%** | 96.02% |
+| 20 | 91.75% | **97.02%** | 96.49% |
+| 30 | 91.68% | **96.95%** | 96.60% |
 
 ### Error Patterns
 
-Low-SNR errors are not random; they are concentrated in modulation families
-that are intrinsically similar under heavy noise. The most common low-SNR
-confusions include:
+Low-SNR mistakes are concentrated in modulation families that become visually
+similar when noise dominates the waveform. CNN1D tends to confuse analog AM
+variants and dense APSK/QAM families. ResNet1D reduces many high-SNR errors but
+still shows analog-family confusion and ASK ambiguity at low SNR. TCN1D improves
+macro F1, but its low-SNR errors concentrate strongly around analog AM classes,
+especially `AM-DSB-WC` and `AM-SSB-WC`.
 
-| True class | Predicted class | Low-SNR mistakes |
-|------------|-----------------|-----------------:|
-| AM-SSB-SC | AM-SSB-WC | 2,656 |
-| AM-DSB-SC | AM-DSB-WC | 2,042 |
-| AM-DSB-WC | AM-DSB-SC | 1,626 |
-| 128APSK | 32APSK | 1,228 |
-| 8ASK | AM-SSB-WC | 1,144 |
+Overall, the deeper models improve the high-SNR and mid-SNR regimes without
+solving the low-SNR problem. This is a useful research signal: the next stage
+should focus on low-SNR data strategy and robustness rather than only increasing
+model capacity.
 
-The largest high-to-low SNR degradation appears in QAM/PSK/APSK classes such as
-`16QAM`, `32QAM`, `8PSK`, `16PSK`, and `64APSK`. These classes are nearly solved
-at high SNR but become hard to separate when constellation structure is buried
-by noise.
+### Confidence Behavior
 
-![CNN1D confusion matrix](assets/cnn1d_confusion_matrix.png)
+Confidence thresholding is useful across all three models. At
+`confidence >= 0.70`, the accepted subsets are much more reliable than the full
+test set:
+
+| Model | Accepted samples | Accepted accuracy | Uncertain accuracy |
+|-------|-----------------:|------------------:|-------------------:|
+| CNN1D | 45.12% | 96.89% | 25.08% |
+| ResNet1D | 54.85% | **97.14%** | 18.43% |
+| TCN1D | **55.69%** | 96.58% | 17.36% |
+
+This means the uncertainty flag is operationally meaningful: the model can
+identify a high-confidence subset with near-production-quality precision, while
+flagging the harder low-confidence cases for review or fallback handling.
 
 ### Low-SNR Improvement Plan
 
 The next research direction is to improve the low-SNR regime rather than only
-raising aggregate accuracy. Future experiments should focus on both data and
-model changes:
+raising aggregate accuracy. The current results already report each model by
+SNR band; future experiments should focus on data, training, and calibration
+changes that directly target the weak low-SNR slices:
 
 - Data-centric improvements: low-SNR oversampling, SNR-balanced mini-batches,
   stronger noise augmentation, and targeted augmentation for the most confused
   modulation families.
-- Model-centric improvements: compare CNN1D against ResNet1D and TCN1D,
-  increase temporal receptive field, add SNR-aware training/evaluation, and test
-  loss weighting for difficult low-SNR examples.
-- Evaluation improvements: report low-, mid-, and high-SNR metrics separately
-  for every model so progress is measured where the baseline currently fails.
+- Model-centric improvements: tune ResNet1D and TCN1D further, increase
+  temporal receptive field, add SNR-aware training/calibration, and test loss
+  weighting for difficult low-SNR examples.
+- Evaluation improvements: extend the existing SNR-band reporting with
+  calibration curves, confidence thresholds per SNR band, and targeted
+  failure-slice reports for the most confused modulation families.
 
-This matters because the current CNN1D is already strong at high SNR, while the
-main open problem is robustness when signal structure is partially hidden by
-noise.
+Detailed generated figures are copied into `assets/` for README use:
 
-### Training And Confidence
-
-Training was still improving at epoch 30: validation loss reached its best value
-at the final epoch, while validation accuracy rose from **47.00%** to
-**57.48%**. This suggests CNN1D had not fully saturated yet, and deeper models
-such as ResNet1D and TCN1D are useful next comparisons.
-
-![CNN1D training curves](assets/cnn1d_training_curves.png)
-
-The confidence threshold is useful operationally. At `confidence >= 0.70`, the
-model accepts about **45%** of test samples and is correct on **96.89%** of
-those accepted predictions. The uncertain set is much harder, with **25.08%**
-accuracy, so the uncertainty flag is meaningful rather than cosmetic.
-
-![CNN1D confidence histogram](assets/cnn1d_confidence_histogram.png)
+| Model | SNR curve | Confusion matrix | Confidence | Training |
+|-------|-----------|------------------|------------|----------|
+| CNN1D | [SNR](assets/cnn1d_accuracy_vs_snr.png) | [Confusion](assets/cnn1d_confusion_matrix.png) | [Confidence](assets/cnn1d_confidence_histogram.png) | [Training](assets/cnn1d_training_curves.png) |
+| ResNet1D | [SNR](assets/resnet1d_accuracy_vs_snr.png) | [Confusion](assets/resnet1d_confusion_matrix.png) | [Confidence](assets/resnet1d_confidence_histogram.png) | [Training](assets/resnet1d_training_curves.png) |
+| TCN1D | [SNR](assets/tcn1d_accuracy_vs_snr.png) | [Confusion](assets/tcn1d_confusion_matrix.png) | [Confidence](assets/tcn1d_confidence_histogram.png) | [Training](assets/tcn1d_training_curves.png) |
 
 ---
 
@@ -423,11 +421,11 @@ All workflows are driven by YAML config files in `configs/`. Key settings:
 
 | Config | Purpose |
 |--------|---------|
-| `cnn1d_baseline.yaml` | Full CNN1D training (30 epochs, all data) |
+| `cnn1d_baseline.yaml` | Full CNN1D training on all data |
 | `cnn1d_quick_test.yaml` | Quick smoke test (2 epochs, 5000 samples) |
-| `resnet1d_baseline.yaml` | Full ResNet1D training (100 epochs, all data) |
+| `resnet1d_baseline.yaml` | Full ResNet1D training on all data |
 | `resnet1d_quick_test.yaml` | Quick ResNet1D test (2 epochs, 5000 samples) |
-| `tcn1d_baseline.yaml` | Full TCN1D / dilated CNN training (100 epochs, all data) |
+| `tcn1d_baseline.yaml` | Full TCN1D / dilated CNN training on all data |
 | `tcn1d_quick_test.yaml` | Quick TCN1D test (2 epochs, 5000 samples) |
 | `xgboost_features.yaml` | XGBoost feature-based baseline (5000-sample default subset) |
 | `inference_default.yaml` | Inference settings |
@@ -506,22 +504,23 @@ rf-sentinel smoke-test
 
 ---
 
-## Future Work (v2)
+## Future Work (v2+)
 
-The following features are planned for future versions and are **not implemented** in v1:
+The current v1 pipeline now includes CNN1D, ResNet1D, and TCN1D comparison,
+SNR-band reporting, confidence-aware evaluation, and README-ready result
+figures. Remaining work focuses on deployment, streaming, hardware validation,
+and targeted low-SNR robustness:
 
 - ONNX model export and ONNX Runtime inference
 - FastAPI prediction service
 - Docker Compose deployment stack
 - Full real-time dashboard
-- Latency and model size benchmarking
-- Low-SNR robustness improvements with data augmentation, SNR-balanced training, and model comparisons
-- Sliding-window streaming inference
-- Streaming I/Q input interface
-- Mock SDR stream integration
-- Buffering system and real-time prediction loop
-- Latency monitoring
-- GNU Radio / SoapySDR / pyrtlsdr integration
+- Latency, throughput, memory, and model size benchmarking
+- Low-SNR robustness improvements with data augmentation, SNR-balanced training,
+  loss weighting, and SNR-aware calibration
+- Sliding-window streaming inference and buffering system
+- Streaming I/Q input interface with mock SDR stream integration
+- Real SDR hardware validation with GNU Radio / SoapySDR / pyrtlsdr-compatible devices
 
 ---
 

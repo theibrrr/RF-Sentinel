@@ -1,30 +1,36 @@
-# ── Data (user must download separately) ──
+# Data (user must download separately)
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
 data/splits/*.npy
 
-# ── Artifacts & checkpoints ──
+# Artifacts and checkpoints
 artifacts/checkpoints/*.pt
 artifacts/checkpoints/*.pth
+artifacts/checkpoints/**/*.pt
+artifacts/checkpoints/**/*.pth
 artifacts/predictions/*
 !artifacts/predictions/.gitkeep
 artifacts/**/*.pkl
 
-# ── MLflow ──
+# MLflow
 mlruns/
+mlflow.db
+mlflow.db-*
 
-# ── Reports (generated outputs) ──
-reports/*.json
-reports/*.csv
-reports/*.md
+# Generated reports
+reports/**
+!reports/
 !reports/.gitkeep
-reports/figures/*.png
-reports/figures/*.pdf
-!reports/figures/.gitkeep
+!reports/**/
+!reports/**/.gitkeep
 
-# ── Python ──
+# README assets are intentionally tracked.
+!assets/
+!assets/**
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -34,20 +40,20 @@ dist/
 build/
 *.egg
 
-# ── Virtual environments ──
+# Virtual environments
 .venv/
 venv/
 rfsentinel/
 env/
 
-# ── IDE ──
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# ── Testing & linting ──
+# Testing and linting
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -55,12 +61,12 @@ htmlcov/
 .coverage
 tmp/
 
-# ── Environment ──
+# Environment
 .env
 
-# ── Jupyter ──
+# Jupyter
 .ipynb_checkpoints/
 
-# ── OS ──
+# OS
 .DS_Store
 Thumbs.db
